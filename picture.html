@@ -11,6 +11,8 @@
       color: #800000;
       margin: 0;
       padding: 0;
+      overflow-x: hidden;
+      position: relative;
     }
     header {
       text-align: center;
@@ -18,12 +20,16 @@
       background: #b3003b;
       color: #fff;
       box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      z-index: 2;
+      position: relative;
     }
     .gallery {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
       gap: 18px;
       padding: 20px;
+      position: relative;
+      z-index: 2;
     }
     .gallery img {
       width: 100%;
@@ -32,9 +38,11 @@
       border-radius: 15px;
       border: 6px solid #ff4d6d;
       box-shadow: 0 6px 16px rgba(0,0,0,0.3);
-      background: white;
+      /* background removed so hearts show through */
       transition: transform 0.3s ease, box-shadow 0.3s ease;
       cursor: pointer;
+      position: relative;
+      z-index: 2; /* keeps images clickable */
     }
     .gallery img:hover {
       transform: scale(1.05);
@@ -46,6 +54,8 @@
       padding: 16px;
       background: #fff;
       border-top: 2px solid #ff4d6d;
+      position: relative;
+      z-index: 2;
     }
     footer a {
       text-decoration: none;
@@ -89,9 +99,29 @@
       color: white;
       cursor: pointer;
       transition: 0.3s;
+      z-index: 1001;
     }
     .close:hover {
       color: #ff4d6d;
+    }
+
+    /* Hearts effect */
+    .heart {
+      position: absolute;
+      font-size: 24px;
+      pointer-events: none;
+      animation: floatUp 1.5s ease-out forwards;
+      z-index: 9999; /* always on top */
+    }
+    @keyframes floatUp {
+      0% {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(-100px) scale(1.8);
+        opacity: 0;
+      }
     }
   </style>
 </head>
@@ -101,15 +131,15 @@
   </header>
 
   <main class="gallery">
-    <img src="picture/1.jpg" alt="Sample Picture 1">
-    <img src="picture/2.jpg" alt="Sample Picture 2">
-    <img src="picture/4.jpg" alt="Sample Picture 3">
-    <img src="picture/5.jpg" alt="Sample Picture 4">
-    <img src="picture/6.jpg" alt="Sample Picture 5">
-    <img src="picture/7.jpg" alt="Sample Picture 6">
-    <img src="picture/8.jpg" alt="Sample Picture 7">
-    <img src="picture/9.jpg" alt="Sample Picture 8">
-    <img src="picture/sample1.jpg" alt="Sample Picture 9">
+    <img src="picture/1.jpg" alt="Sample Picture 1" data-sound="sounds/1.mp3">
+    <img src="picture/2.jpg" alt="Sample Picture 2" data-sound="sounds/2.mp3">
+    <img src="picture/4.jpg" alt="Sample Picture 3" data-sound="sounds/3.mp3">
+    <img src="picture/5.jpg" alt="Sample Picture 4" data-sound="sounds/4.mp3">
+    <img src="picture/6.jpg" alt="Sample Picture 5" data-sound="sounds/5.mp3">
+    <img src="picture/7.jpg" alt="Sample Picture 6" data-sound="sounds/6.mp3">
+    <img src="picture/8.jpg" alt="Sample Picture 7" data-sound="sounds/7.mp3">
+    <img src="picture/9.jpg" alt="Sample Picture 8" data-sound="sounds/8.mp3">
+    <img src="picture/sample1.jpg" alt="Sample Picture 9" data-sound="sounds/9.mp3">
   </main>
 
   <!-- Modal -->
@@ -128,23 +158,67 @@
     const closeBtn = document.querySelector(".close");
     const images = document.querySelectorAll(".gallery img");
 
+    let audio = new Audio(); // single audio player
+
     images.forEach(img => {
-      img.addEventListener("click", () => {
+      img.addEventListener("click", (e) => {
+        e.stopPropagation(); // prevent heart effect when clicking images
         modal.style.display = "flex";
         modalImg.src = img.src;
+
+        // stop any current sound
+        audio.pause();
+        audio.currentTime = 0;
+
+        // play new sound
+        const soundFile = img.getAttribute("data-sound");
+        if (soundFile) {
+          audio = new Audio(soundFile);
+          audio.play();
+        }
       });
     });
 
     closeBtn.onclick = function() {
       modal.style.display = "none";
+      audio.pause();
+      audio.currentTime = 0;
     };
 
-    // Close when clicking outside image
     modal.addEventListener("click", (e) => {
       if (e.target === modal) {
         modal.style.display = "none";
+        audio.pause();
+        audio.currentTime = 0;
       }
     });
+
+    // Hearts effect on background click/touch
+    const colors = ["#ff4d6d", "#ffcc00", "#66ccff", "#ff66ff", "#00cc99", "#ff6600"];
+    
+    document.body.addEventListener("click", (e) => {
+      if (e.target.closest(".gallery") || e.target.closest(".modal")) return; // ignore clicks on gallery/modal
+      createHeart(e.pageX, e.pageY);
+    });
+
+    document.body.addEventListener("touchstart", (e) => {
+      const touch = e.touches[0];
+      createHeart(touch.pageX, touch.pageY);
+    });
+
+    function createHeart(x, y) {
+      const heart = document.createElement("span");
+      heart.innerHTML = "❤️";
+      heart.className = "heart";
+      heart.style.left = `${x}px`;
+      heart.style.top = `${y}px`;
+      heart.style.color = colors[Math.floor(Math.random() * colors.length)];
+      document.body.appendChild(heart);
+
+      setTimeout(() => {
+        heart.remove();
+      }, 1500);
+    }
   </script>
 </body>
 </html>
